@@ -9,7 +9,7 @@ from sklearn.metrics import ConfusionMatrixDisplay, classification_report
 # folder where app.py is kept, so files are found no matter where streamlit is run from
 BASE_DIR = Path(__file__).parent
 
-# same target column and RB/NRB mapping as used in the notebook
+# same target column and RB/NRB mapping as used in the qsar_classifier notebook
 TARGET_COLUMN = "experimental_class"
 TARGET_CLASS_TO_BINARY = {"RB": 1, "NRB": 0}
 CLASS_NAMES = ["NRB", "RB"]   # 0 = NRB, 1 = RB
@@ -52,6 +52,7 @@ st.download_button("Download Test Data", test_data, file_name="test_data.csv", m
 
 uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values.")
 
+# show information about uploading the test data csv if no file is uploaded yet
 if uploaded_file is None:
     st.info("Please upload the test data CSV file to see the results. You can get the sample file using the 'Download Test Data' button above.")
     st.stop()
@@ -68,17 +69,21 @@ st.dataframe(uploaded_df.head())
 # the saved model remembers the 41 feature names it was trained on, so we take them from it
 feature_columns = list(model.feature_names_in_)
 
-# checks on the uploaded file, so that the user gets a clear message instead of a crash
+# checks on the uploaded file; need to ensure that columns match
 missing_columns = [col for col in feature_columns + [TARGET_COLUMN] if col not in uploaded_df.columns]
+
+# show error for missing columns
 if missing_columns:
     st.error(f"Uploaded file is missing {len(missing_columns)} column(s): {', '.join(missing_columns)}")
     st.stop()
 
+# show error for wrong classes uploaded
 wrong_classes = [value for value in uploaded_df[TARGET_COLUMN].unique() if value not in TARGET_CLASS_TO_BINARY]
 if wrong_classes:
     st.error(f"Column '{TARGET_COLUMN}' should only have RB or NRB values. Found other values: {wrong_classes}")
     st.stop()
 
+# need to ensure that test data have both types of target classes
 if uploaded_df[TARGET_COLUMN].nunique() < 2:
     st.error("Uploaded file should have both RB and NRB rows, otherwise AUC and the other metrics can not be calculated.")
     st.stop()
