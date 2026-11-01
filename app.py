@@ -19,6 +19,14 @@ st.set_page_config(
     page_icon="🌱",
     layout="wide",
     initial_sidebar_state="expanded",
+    # only "About" is shown in the top-right menu (other items are hidden by toolbarMode in .streamlit/config.toml)
+    menu_items={
+        "About": (
+            "**QSAR Biodegradation Classifier**  \n"
+            "Machine Learning (AIMLZG565) - Assignment 2  \n"
+            "MADHUR BHAIYA (BITS ID: 2026AJ05066)"
+        ),
+    },
 )
 
 # small CSS changes, so that the page fits on one screen

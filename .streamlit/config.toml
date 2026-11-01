@@ -1,0 +1,4 @@
+[client]
+# "minimal" hides the Deploy button and the developer items (Rerun, Clear cache etc.) from the top-right menu.
+# The menu then only shows the theme choice and the "About" item set in app.py (st.set_page_config).
+toolbarMode = "minimal"
