@@ -50,13 +50,17 @@ test_data = (BASE_DIR / "test_data.csv").read_bytes()
 
 st.download_button("Download Test Data", test_data, file_name="test_data.csv", mime="text/csv", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
 
-uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv")
+uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values.")
 
 if uploaded_file is None:
     st.info("Please upload the test data CSV file to see the results. You can get the sample file using the 'Download Test Data' button above.")
     st.stop()
 
-uploaded_df = pd.read_csv(uploaded_file)
+try:
+    uploaded_df = pd.read_csv(uploaded_file)
+except Exception as error:
+    st.error(f"Could not read the uploaded file as CSV. Error: {error}")
+    st.stop()
 
 st.write(f"Uploaded data has {uploaded_df.shape[0]} rows and {uploaded_df.shape[1]} columns.")
 st.dataframe(uploaded_df.head())
@@ -64,7 +68,28 @@ st.dataframe(uploaded_df.head())
 # the saved model remembers the 41 feature names it was trained on, so we take them from it
 feature_columns = list(model.feature_names_in_)
 
-X_test = uploaded_df[feature_columns]
+# checks on the uploaded file, so that the user gets a clear message instead of a crash
+missing_columns = [col for col in feature_columns + [TARGET_COLUMN] if col not in uploaded_df.columns]
+if missing_columns:
+    st.error(f"Uploaded file is missing {len(missing_columns)} column(s): {', '.join(missing_columns)}")
+    st.stop()
+
+wrong_classes = [value for value in uploaded_df[TARGET_COLUMN].unique() if value not in TARGET_CLASS_TO_BINARY]
+if wrong_classes:
+    st.error(f"Column '{TARGET_COLUMN}' should only have RB or NRB values. Found other values: {wrong_classes}")
+    st.stop()
+
+if uploaded_df[TARGET_COLUMN].nunique() < 2:
+    st.error("Uploaded file should have both RB and NRB rows, otherwise AUC and the other metrics can not be calculated.")
+    st.stop()
+
+# text or empty cells become NaN here, so we can find them
+X_test = uploaded_df[feature_columns].apply(pd.to_numeric, errors="coerce")
+bad_columns = [col for col in feature_columns if X_test[col].isna().any()]
+if bad_columns:
+    st.error(f"These columns have empty or non-numeric values: {', '.join(bad_columns)}")
+    st.stop()
+
 y_test = uploaded_df[TARGET_COLUMN].map(TARGET_CLASS_TO_BINARY)
 
 # only prediction here, the models are already trained in the notebook
