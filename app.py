@@ -102,8 +102,12 @@ def load_model(model_file_name):
 
 test_data = (BASE_DIR / "test_data.csv").read_bytes()
 
-# model selection, model details, test data download and upload - all in one row
-model_column, details_column, download_column, upload_column = st.columns([1, 0.5, 0.5, 2], vertical_alignment="bottom")
+# blank csv with only the header row (all column names), taken from test_data.csv
+# nrows=0 reads only the column names, to_csv writes them back as one header line
+blank_template = pd.read_csv(BASE_DIR / "test_data.csv", nrows=0).to_csv(index=False)
+
+# model selection, model details, test data download, blank template download and upload - all in one row
+model_column, details_column, download_column, template_column, upload_column = st.columns([0.9, 0.5, 0.5, 0.7, 1.4], vertical_alignment="bottom")
 
 with model_column:
     # no model is selected by default (index=None), the user has to choose one
@@ -125,8 +129,11 @@ with details_column:
 with download_column:
     st.download_button("Download Test Data", test_data, file_name="test_data.csv", mime="text/csv", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
 
+with template_column:
+    st.download_button("Download Blank Template", blank_template, file_name="blank_template.csv", mime="text/csv", help=f"CSV file with only the header row (41 feature columns and the '{TARGET_COLUMN}' column). Fill in your own molecules and upload it.")
+
 with upload_column:
-    uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values.")
+    uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values. Use 'Download Blank Template' to get all the column names.")
 
 # show information if no model is selected or no test data csv is uploaded yet
 if option is None or uploaded_file is None:

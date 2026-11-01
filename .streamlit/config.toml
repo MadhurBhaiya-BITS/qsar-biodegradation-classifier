@@ -2,3 +2,12 @@
 # "minimal" hides the Deploy button and the developer items (Rerun, Clear cache etc.) from the top-right menu.
 # The menu then only shows the theme choice and the "About" item set in app.py (st.set_page_config).
 toolbarMode = "minimal"
+
+# default primary color is red, which looks like a warning, so use blue instead
+# (used for the "Model details" button, and the border of the selected dropdown / focused items)
+# it is set separately for light and dark theme; setting it only in [theme] makes the app always light
+[theme.light]
+primaryColor = "#1976D2"
+
+[theme.dark]
+primaryColor = "#1976D2"
