@@ -79,12 +79,10 @@ footer.caption(
 st.header("QSAR Biodegradation Classifier - Models Comparison", text_alignment="center")
 
 st.markdown(
-    "Some chemicals break down quickly in nature, while others stay in the environment for a long time. "
-    "Using the **QSAR Biodegradation** dataset from UCI (1055 molecules, 41 molecular descriptors), "
+    "Using the [**QSAR Biodegradation**](https://archive.ics.uci.edu/dataset/254/qsar+biodegradation) dataset from UCI (1055 molecules (samples), 41 molecular descriptors (features)), "
     "this app predicts whether a molecule is **readily biodegradable (RB)** or **not readily biodegradable (NRB)**. "
     "Five classification models were trained and tuned in the notebook, and saved. "
-    "Select a model, upload the test data, and see how it performs on data it has never seen.",
-    text_alignment="center",
+    "**Select a model, upload the test data, and see how it performs on data it has never seen**.",
 )
 
 models = {
@@ -104,13 +102,25 @@ def load_model(model_file_name):
 
 test_data = (BASE_DIR / "test_data.csv").read_bytes()
 
-# model selection, test data download and upload - all in one row
-model_column, download_column, upload_column = st.columns([1, 1, 2], vertical_alignment="bottom")
+# model selection, model details, test data download and upload - all in one row
+model_column, details_column, download_column, upload_column = st.columns([1, 0.5, 0.5, 2], vertical_alignment="bottom")
 
 with model_column:
+    # no model is selected by default (index=None), the user has to choose one
     option = st.selectbox(
-        "Please select the model: ", models.keys()
+        "Please select the model: ", models.keys(), index=None, placeholder="Choose a model"
     )
+
+with details_column:
+    # notes about the selected model (how it was tuned, final settings, F1 scores and observations from the notebook)
+    # one markdown file per model in the model_notes folder, with the same name as its .pkl file
+    # popover opens only on click, so the notes do not take any space on the page
+    # primary (filled colour) button with an info icon, so that it is easy to notice; disabled until a model is selected
+    with st.popover("Model details", type="primary", icon=":material/info:", disabled=option is None):
+        if option is not None:
+            note_file = BASE_DIR / "model_notes" / f"{models[option]}.md"
+            if note_file.exists():
+                st.markdown(note_file.read_text())
 
 with download_column:
     st.download_button("Download Test Data", test_data, file_name="test_data.csv", mime="text/csv", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
@@ -118,12 +128,12 @@ with download_column:
 with upload_column:
     uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values.")
 
-model = load_model(models[option])
-
-# show information about uploading the test data csv if no file is uploaded yet
-if uploaded_file is None:
-    st.info("Please upload the test data CSV file to see the results. You can get the sample file using the 'Download Test Data' button above.")
+# show information if no model is selected or no test data csv is uploaded yet
+if option is None or uploaded_file is None:
+    st.info("Please select a model and upload the test data CSV file to see the results. You can get the sample file using the 'Download Test Data' button above.")
     st.stop()
+
+model = load_model(models[option])
 
 try:
     uploaded_df = pd.read_csv(uploaded_file)
