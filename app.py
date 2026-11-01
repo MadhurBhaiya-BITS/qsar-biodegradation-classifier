@@ -21,9 +21,39 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.header("QSAR Biodegradation Classifier - Models Comparison")
+# small CSS changes, so that the page fits on one screen
+# 1. streamlit leaves a big empty space at the top and sides of the page, so reduce it
+# 2. the top bar (Deploy button / menu) has a white background which hides the title, so make it transparent
+# 3. the numbers in the metric cards are very big by default, so make them a little smaller
+st.html(
+    """
+    <style>
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 1.5rem;
+        padding-bottom: 1rem;
+        padding-left: 3rem;
+        padding-right: 3rem;
+    }
+    [data-testid="stHeader"] {
+        background: transparent;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.75rem;
+    }
+    </style>
+    """
+)
 
-st.markdown("**Comparing various classification ML models for predicting whether a molecule is readily biodegradable (RB) or not (NRB).**")
+st.header("QSAR Biodegradation Classifier - Models Comparison", text_alignment="center")
+
+st.markdown(
+    "Some chemicals break down quickly in nature, while others stay in the environment for a long time. "
+    "Using the **QSAR Biodegradation** dataset from UCI (1055 molecules, 41 molecular descriptors), "
+    "this app predicts whether a molecule is **readily biodegradable (RB)** or **not readily biodegradable (NRB)**. "
+    "Five classification models were trained and tuned in the notebook, and saved. "
+    "Select a model, upload the test data, and see how it performs on data it has never seen.",
+    text_alignment="center",
+)
 
 models = {
     "Logistic Regression": "logistic_regression",
@@ -40,17 +70,23 @@ def load_model(model_file_name):
     return joblib.load(BASE_DIR / "model" / f"{model_file_name}.pkl")
 
 
-option = st.selectbox(
-    "Please select the model: ", models.keys()
-)
-
-model = load_model(models[option])
-
 test_data = (BASE_DIR / "test_data.csv").read_bytes()
 
-st.download_button("Download Test Data", test_data, file_name="test_data.csv", mime="text/csv", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
+# model selection, test data download and upload - all in one row
+model_column, download_column, upload_column = st.columns([1, 1, 2], vertical_alignment="bottom")
 
-uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values.")
+with model_column:
+    option = st.selectbox(
+        "Please select the model: ", models.keys()
+    )
+
+with download_column:
+    st.download_button("Download Test Data", test_data, file_name="test_data.csv", mime="text/csv", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
+
+with upload_column:
+    uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values.")
+
+model = load_model(models[option])
 
 # show information about uploading the test data csv if no file is uploaded yet
 if uploaded_file is None:
@@ -63,8 +99,9 @@ except Exception as error:
     st.error(f"Could not read the uploaded file as CSV. Error: {error}")
     st.stop()
 
-st.write(f"Uploaded data has {uploaded_df.shape[0]} rows and {uploaded_df.shape[1]} columns.")
-st.dataframe(uploaded_df.head())
+# preview of the uploaded data is kept closed, so that the page fits on one screen
+with st.expander(f"Preview of uploaded data ({uploaded_df.shape[0]} rows, {uploaded_df.shape[1]} columns)"):
+    st.dataframe(uploaded_df.head())
 
 # the saved model remembers the 41 feature names it was trained on, so we take them from it
 feature_columns = list(model.feature_names_in_)
@@ -116,20 +153,22 @@ test_metrics = {
     "MCC": matthews_corrcoef(y_test, y_pred),
 }
 
-st.subheader(f"Evaluation Metrics - {option}")
+st.subheader(f"Results of {option} on the uploaded test data")
 
-# show the 6 metrics side by side
-metric_columns = st.columns(len(test_metrics))
-for i, (metric_name, metric_value) in enumerate(test_metrics.items()):
-    metric_columns[i].metric(metric_name, f"{metric_value:.4f}")
+# metrics, confusion matrix and classification report - all side by side in one row
+metrics_column, cm_column, report_column = st.columns([0.9, 1, 1.3], gap="medium")
 
-# confusion matrix on the left, classification report on the right
-cm_column, report_column = st.columns(2)
+with metrics_column:
+    st.markdown("**Evaluation Metrics**")
+    # 6 metrics as a grid of 3 rows x 2 cards: (Accuracy, AUC), (Precision, Recall), (F1, MCC)
+    metric_columns = st.columns(2)
+    for i, (metric_name, metric_value) in enumerate(test_metrics.items()):
+        metric_columns[i % 2].metric(metric_name, f"{metric_value:.4f}", border=True)
 
 with cm_column:
-    st.subheader("Confusion Matrix")
+    st.markdown("**Confusion Matrix**")
     # Rows = actual class, Columns = predicted class
-    fig, ax = plt.subplots(figsize=(4, 4))
+    fig, ax = plt.subplots(figsize=(3.5, 3.5))
     ConfusionMatrixDisplay.from_predictions(
         y_test,
         y_pred,
@@ -139,9 +178,10 @@ with cm_column:
         ax=ax,
     )
     plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(fig, width=300)   # fixed width in pixels, so the picture does not become too big
     plt.close(fig)   # free the figure memory, streamlit runs this code again on every click
 
 with report_column:
-    st.subheader("Classification Report")
-    st.text(classification_report(y_test, y_pred, target_names=CLASS_NAMES, digits=4))
+    st.markdown("**Classification Report**")
+    # st.code uses a fixed-width font, so the columns of the report stay in line
+    st.code(classification_report(y_test, y_pred, target_names=CLASS_NAMES, digits=4), language=None)
