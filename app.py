@@ -33,12 +33,15 @@ st.set_page_config(
 # 1. streamlit leaves a big empty space at the top and sides of the page, so reduce it
 # 2. the top bar (Deploy button / menu) has a white background which hides the title, so make it transparent
 # 3. the numbers in the metric cards are very big by default, so make them a little smaller
+# 4. the footer (container with key="footer") stays fixed at the bottom of the screen;
+#    solid dark background with light text, so it looks fine in both light and dark theme
+#    (padding-top is 0.5rem, because the footer still leaves an empty spot + 1rem gap at the top of the page)
 st.html(
     """
     <style>
     [data-testid="stMainBlockContainer"] {
-        padding-top: 1.5rem;
-        padding-bottom: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 3rem;
         padding-left: 3rem;
         padding-right: 3rem;
     }
@@ -48,8 +51,29 @@ st.html(
     [data-testid="stMetricValue"] {
         font-size: 1.75rem;
     }
+    .st-key-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 99;
+        padding: 0.3rem 1rem;
+        background: #262730;
+    }
+    .st-key-footer p {
+        color: #fafafa;
+    }
     </style>
     """
+)
+
+# footer with student details
+# it is created here at the start (not at the end of the code), because st.stop() further below
+# stops the code early (no file uploaded / wrong file), and then a footer at the end would not be shown
+footer = st.container(key="footer")
+footer.caption(
+    "MADHUR BHAIYA | BITS ID: 2026AJ05066 | Machine Learning (AIMLZG565) | Assignment 2",
+    text_alignment="center",
 )
 
 st.header("QSAR Biodegradation Classifier - Models Comparison", text_alignment="center")
