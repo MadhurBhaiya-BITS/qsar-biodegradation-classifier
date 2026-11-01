@@ -1,8 +1,10 @@
 from pathlib import Path
 import joblib
 import pandas as pd
+import matplotlib.pyplot as plt
 import streamlit as st
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, f1_score, matthews_corrcoef
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report
 
 # folder where app.py is kept, so files are found no matter where streamlit is run from
 BASE_DIR = Path(__file__).parent
@@ -10,6 +12,7 @@ BASE_DIR = Path(__file__).parent
 # same target column and RB/NRB mapping as used in the notebook
 TARGET_COLUMN = "experimental_class"
 TARGET_CLASS_TO_BINARY = {"RB": 1, "NRB": 0}
+CLASS_NAMES = ["NRB", "RB"]   # 0 = NRB, 1 = RB
 
 st.set_page_config(
     page_title="QSAR Biodegradation Classifier",
@@ -89,3 +92,26 @@ st.subheader(f"Evaluation Metrics - {option}")
 metric_columns = st.columns(len(test_metrics))
 for i, (metric_name, metric_value) in enumerate(test_metrics.items()):
     metric_columns[i].metric(metric_name, f"{metric_value:.4f}")
+
+# confusion matrix on the left, classification report on the right
+cm_column, report_column = st.columns(2)
+
+with cm_column:
+    st.subheader("Confusion Matrix")
+    # Rows = actual class, Columns = predicted class
+    fig, ax = plt.subplots(figsize=(4, 4))
+    ConfusionMatrixDisplay.from_predictions(
+        y_test,
+        y_pred,
+        display_labels=CLASS_NAMES,
+        cmap="Blues",
+        colorbar=False,
+        ax=ax,
+    )
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)   # free the figure memory, streamlit runs this code again on every click
+
+with report_column:
+    st.subheader("Classification Report")
+    st.text(classification_report(y_test, y_pred, target_names=CLASS_NAMES, digits=4))
