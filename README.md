@@ -26,7 +26,9 @@ What is done in this project:
 
 ## b. Dataset description
 
-**Source:** [QSAR Biodegradation](https://archive.ics.uci.edu/dataset/254/qsar+biodegradation) dataset from the UCI Machine Learning Repository (dataset ID 254, license CC BY 4.0). It comes from the paper by Mansouri et al., *"Quantitative Structure-Activity Relationship models for ready biodegradability of chemicals"*, Journal of Chemical Information and Modeling, 53, 867-878 (2013). The lab results (RB / NRB) were collected by the National Institute of Technology and Evaluation of Japan (NITE).
+### Source: [**QSAR Biodegradation**](https://archive.ics.uci.edu/dataset/254/qsar+biodegradation) dataset from the UCI Machine Learning Repository
+
+---
 
 | Item | Details |
 |---|---|
@@ -45,3 +47,38 @@ What is done in this project:
 - The features have very different ranges. For example, `Me` only goes from 0.957 to 1.311, while `C%` goes from 0 to 60.7 and `nCIR` goes up to 147. So Logistic Regression, kNN and SVM use StandardScaler (scaling). Decision Tree and Naive Bayes do not need it.
 - 11 of the 41 features are zero in more than 80% of the rows.
 - Two features (`SdssC` and `Psi_i_1d`) have negative values. Multinomial Naive Bayes needs values of 0 or more, so **Gaussian** Naive Bayes is used.
+
+## c. GitHub repository link
+
+**Repository:** https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier
+
+Files in the repository:
+
+```
+qsar-biodegradation-classifier/
+├── app.py                    # Streamlit app: loads the saved models and shows the results (no training)
+├── qsar_classifier.ipynb     # Notebook: EDA, data preparation, training and tuning of the 5 models, test results
+├── requirements.txt          # Python packages needed to run the app
+├── README.md                 # This file
+├── test_data.csv             # 20% unseen test data (211 rows), upload this file in the app
+├── LICENSE
+├── data/
+│   └── qsar+biodegradation.zip   # Original dataset from UCI
+├── model/                    # 5 trained models (scikit-learn pipelines), saved with joblib
+│   ├── logistic_regression.pkl
+│   ├── decision_tree.pkl
+│   ├── knn.pkl
+│   ├── naive_bayes.pkl
+│   └── svm.pkl
+├── model_notes/              # Short notes on each model, shown in the app with the "Model details" button
+│   └── (one .md file per model)
+└── .streamlit/
+    └── config.toml           # App settings (button colour, top-right menu)
+```
+
+**To run the app (Python 3.14)**:
+
+```
+pip install -r requirements.txt
+streamlit run app.py
+```
