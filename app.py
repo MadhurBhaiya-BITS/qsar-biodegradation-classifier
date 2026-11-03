@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, f1_score, matthews_corrcoef
-from sklearn.metrics import ConfusionMatrixDisplay, classification_report
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report, confusion_matrix
 
 # folder where app.py is kept, so files are found no matter where streamlit is run from
 BASE_DIR = Path(__file__).parent
@@ -193,26 +193,40 @@ if hasattr(model, "predict_proba"):
 else:
     y_score = model.decision_function(X_test)
 
+# F1 and MCC first, as they are the main metrics for this data (see the note below the classification report)
 test_metrics = {
+    "F1": f1_score(y_test, y_pred),
+    "MCC": matthews_corrcoef(y_test, y_pred),
     "Accuracy": accuracy_score(y_test, y_pred),
     "AUC": roc_auc_score(y_test, y_score),
     "Precision": precision_score(y_test, y_pred),
     "Recall": recall_score(y_test, y_pred),
-    "F1": f1_score(y_test, y_pred),
-    "MCC": matthews_corrcoef(y_test, y_pred),
 }
+main_metrics = ["F1", "MCC"]
 
-st.subheader(f"Results of {option} on the uploaded test data")
+# what each metric means in simple words, shown in the (?) help of each metric card
+metric_help = {
+    "F1": "Main metric. Combines Precision and Recall of the RB class into one score (0 to 1). All models were tuned on F1 in the notebook.",
+    "MCC": "Main metric. Matthews Correlation Coefficient uses all four cells of the confusion matrix. 1 = perfect, 0 = no better than guessing, -1 = always wrong. It stays fair when one class is bigger than the other.",
+    "Accuracy": "Share of all molecules predicted correctly. It can look good even when many RB molecules are missed, because there are about twice as many NRB molecules.",
+    "AUC": "How well the model ranks RB molecules above NRB molecules, without a fixed cut-off. 1 = perfect, 0.5 = random guessing.",
+    "Precision": "Of the molecules predicted as RB, the share that really are RB.",
+    "Recall": "Of the molecules that really are RB, the share the model found.",
+}
 
 # metrics, confusion matrix and classification report - all side by side in one row
 metrics_column, cm_column, report_column = st.columns([0.9, 1, 1.3], gap="medium")
 
 with metrics_column:
     st.markdown("**Evaluation Metrics**")
-    # 6 metrics as a grid of 3 rows x 2 cards: (Accuracy, AUC), (Precision, Recall), (F1, MCC)
+    # 6 metrics as a grid of 3 rows x 2 cards: (F1, MCC), (Accuracy, AUC), (Precision, Recall)
+    # main metrics get a blue bold label and a star icon, so they stand out
     metric_columns = st.columns(2)
     for i, (metric_name, metric_value) in enumerate(test_metrics.items()):
-        metric_columns[i % 2].metric(metric_name, f"{metric_value:.4f}", border=True)
+        label, icon = metric_name, None
+        if metric_name in main_metrics:
+            label, icon = f":blue[**{metric_name}**]", ":material/star:"
+        metric_columns[i % 2].metric(label, f"{metric_value:.4f}", help=metric_help[metric_name], icon=icon, border=True)
 
 with cm_column:
     st.markdown("**Confusion Matrix**")
@@ -235,6 +249,13 @@ with cm_column:
     st.pyplot(fig, width=300)   # fixed width in pixels, so the picture does not become too big
     plt.close(fig)   # free the figure memory, streamlit runs this code again on every click
 
+    # right and wrong predictions in simple words (ravel gives the 4 cells in order: tn, fp, fn, tp)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    st.markdown(
+        f"**{tn + tp} of {len(y_test)}** molecules predicted correctly. "
+        f"**{fp}** NRB molecules wrongly predicted as RB, and **{fn}** RB molecules missed."
+    )
+
 with report_column:
     st.markdown("**Classification Report**")
     # output_dict=True gives the report as a dictionary, so it can be shown as a table
@@ -242,3 +263,13 @@ with report_column:
     report_df = pd.DataFrame(report).transpose().drop(index="accuracy")   # accuracy is already shown in the metric cards
     report_df["support"] = report_df["support"].astype(int)
     st.table(report_df.style.format(precision=4))
+
+    # why F1 and MCC are the main metrics (the classes are not balanced, about 2 NRB : 1 RB)
+    st.info(
+        "**Main metrics: F1 and MCC.** The data has about 2 NRB molecules for every RB molecule, "
+        "so Accuracy can look good even when many RB molecules are missed. "
+        "F1 checks how well the RB molecules are found (Precision and Recall together), "
+        "and MCC uses all four cells of the confusion matrix, so both stay fair with uneven classes. "
+        "F1 was also used to tune all the models in the notebook.",
+        icon=":material/star:",
+    )
