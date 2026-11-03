@@ -76,7 +76,9 @@ footer.caption(
     text_alignment="center",
 )
 
-st.header("QSAR Biodegradation Classifier - Models Comparison", text_alignment="center")
+# empty slot for the title; it is filled after the model dropdown below,
+# because streamlit draws from top to bottom and the selected model is known only after the dropdown
+title_slot = st.empty()
 
 st.markdown(
     "Using the [**QSAR Biodegradation**](https://archive.ics.uci.edu/dataset/254/qsar+biodegradation) dataset from UCI (1055 molecules (samples), 41 molecular descriptors (features)), "
@@ -114,6 +116,12 @@ with model_column:
     option = st.selectbox(
         "Please select the model: ", models.keys(), index=None, placeholder="Choose a model"
     )
+
+# title shows the selected model name on a blue background; before a model is selected it says "Models Comparison"
+if option is None:
+    title_slot.header("QSAR Biodegradation Classifier - Models Comparison", text_alignment="center")
+else:
+    title_slot.header(f"QSAR Biodegradation Classifier - :blue-background[{option}]", text_alignment="center")
 
 with details_column:
     # notes about the selected model (how it was tuned, final settings, F1 scores and observations from the notebook)
