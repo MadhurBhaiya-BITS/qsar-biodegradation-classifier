@@ -226,11 +226,19 @@ with cm_column:
         colorbar=False,
         ax=ax,
     )
+    # see-through background and grey text, so that the picture looks fine in both light and dark theme
+    fig.patch.set_alpha(0)
+    ax.tick_params(colors="grey")
+    ax.xaxis.label.set_color("grey")
+    ax.yaxis.label.set_color("grey")
     plt.tight_layout()
     st.pyplot(fig, width=300)   # fixed width in pixels, so the picture does not become too big
     plt.close(fig)   # free the figure memory, streamlit runs this code again on every click
 
 with report_column:
     st.markdown("**Classification Report**")
-    # st.code uses a fixed-width font, so the columns of the report stay in line
-    st.code(classification_report(y_test, y_pred, target_names=CLASS_NAMES, digits=4), language=None)
+    # output_dict=True gives the report as a dictionary, so it can be shown as a table
+    report = classification_report(y_test, y_pred, target_names=CLASS_NAMES, output_dict=True)
+    report_df = pd.DataFrame(report).transpose().drop(index="accuracy")   # accuracy is already shown in the metric cards
+    report_df["support"] = report_df["support"].astype(int)
+    st.table(report_df.style.format(precision=4))
