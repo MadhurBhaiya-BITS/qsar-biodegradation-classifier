@@ -1,7 +1,12 @@
 # QSAR Biodegradation Classifier
 
-Machine Learning (AIMLZG565) - Assignment 2  
-**MADHUR BHAIYA** (BITS ID: **2026AJ05066**)
+<table>
+<tr>
+<td align="left"><b>MADHUR BHAIYA</b><br>BITS ID : <b>2026AJ05066</b></td>
+<td align="center"><b>ASSIGNMENT 2</b><br>QSAR Biodegradation Classification</td>
+<td align="right"><b>Machine Learning</b><br>Course Code : <b>AIMLZG565</b></td>
+</tr>
+</table>
 
 This project predicts whether a chemical (molecule) is **readily biodegradable (RB)** or **not readily biodegradable (NRB)**, using 5 classification models.
 
