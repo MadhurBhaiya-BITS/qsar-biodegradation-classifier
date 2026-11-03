@@ -39,7 +39,7 @@ What is done in this project:
 | Missing values | None |
 | Duplicate rows | 3 (removed, 1,052 rows left) |
 
-**Train / test split:** 80% for training (841 rows) and 20% for testing (211 rows). The split is stratified, so both parts keep the same 2 : 1 ratio of NRB to RB. The test part (140 NRB, 71 RB) is saved as `test_data.csv`. It is not used for training.
+**Train / test split:** 80% for training (841 rows) and 20% for testing (211 rows). The split is stratified, so both parts keep the same 2 : 1 ratio of NRB to RB. The test part (140 NRB, 71 RB) is saved as [`test_data.csv`](https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/test_data.csv). It is not used for training.
 
 **What the data analysis (EDA) showed, and what was done about it:**
 
@@ -54,27 +54,27 @@ What is done in this project:
 
 Files in the repository:
 
-```
+<pre>
 qsar-biodegradation-classifier/
-├── app.py                    # Streamlit app: loads the saved models and shows the results (no training)
-├── qsar_classifier.ipynb     # Notebook: EDA, data preparation, training and tuning of the 5 models, test results
-├── requirements.txt          # Python packages needed to run the app
-├── README.md                 # This file
-├── test_data.csv             # 20% unseen test data (211 rows), upload this file in the app
-├── LICENSE
-├── data/
-│   └── qsar+biodegradation.zip   # Original dataset from UCI
-├── model/                    # 5 trained models (scikit-learn pipelines), saved with joblib
-│   ├── logistic_regression.pkl
-│   ├── decision_tree.pkl
-│   ├── knn.pkl
-│   ├── naive_bayes.pkl
-│   └── svm.pkl
-├── model_notes/              # Short notes on each model, shown in the app with the "Model details" button
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/app.py">app.py</a>                    # Streamlit app: loads the saved models and shows the results (no training)
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/qsar_classifier.ipynb">qsar_classifier.ipynb</a>     # Notebook: EDA, data preparation, training and tuning of the 5 models, test results
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/requirements.txt">requirements.txt</a>          # Python packages needed to run the app
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/README.md">README.md</a>                 # This file
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/test_data.csv">test_data.csv</a>             # 20% unseen test data (211 rows), upload this file in the app
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/LICENSE">LICENSE</a>
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/data">data/</a>
+│   └── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/data/qsar%2Bbiodegradation.zip">qsar+biodegradation.zip</a>   # Original dataset from UCI
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/model">model/</a>                    # 5 trained models (scikit-learn pipelines), saved with joblib
+│   ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/model/logistic_regression.pkl">logistic_regression.pkl</a>
+│   ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/model/decision_tree.pkl">decision_tree.pkl</a>
+│   ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/model/knn.pkl">knn.pkl</a>
+│   ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/model/naive_bayes.pkl">naive_bayes.pkl</a>
+│   └── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/model/svm.pkl">svm.pkl</a>
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/model_notes">model_notes/</a>              # Short notes on each model, shown in the app with the "Model details" button
 │   └── (one .md file per model)
-└── .streamlit/
-    └── config.toml           # App settings (button colour, top-right menu)
-```
+└── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/.streamlit">.streamlit/</a>
+    └── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/.streamlit/config.toml">config.toml</a>           # App settings (button colour, top-right menu)
+</pre>
 
 **To run the app (Python 3.14)**:
 
@@ -82,3 +82,36 @@ qsar-biodegradation-classifier/
 pip install -r requirements.txt
 streamlit run app.py
 ```
+
+## d. Models used
+
+All 5 models were trained on the same training data (841 rows) in the notebook [`qsar_classifier.ipynb`](https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/qsar_classifier.ipynb).
+
+- **Tuning:** GridSearchCV with stratified 5-fold cross-validation, scored on F1. First a wide search, and then (for most models) a finer search around the best values.
+- **Saving:** each model is saved as a scikit-learn pipeline (with StandardScaler for Logistic Regression, KNN and SVM). So the app can give the raw test data straight to the saved model.
+- **Testing:** the final models were tested only once, on [`test_data.csv`](https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/test_data.csv) (211 rows that were never used for training or tuning).
+
+**Best settings found for each model:**
+
+| ML Model Name | Scaling | Best settings | CV F1 |
+|---|---|---|---|
+| Logistic Regression | StandardScaler | solver = saga, l1_ratio = 0.5 (Elastic Net), C = 0.5, class_weight = balanced | 0.8029 |
+| Decision Tree | No | criterion = gini, max_depth = 7, min_samples_leaf = 3, class_weight = balanced | 0.7494 |
+| KNN | StandardScaler | n_neighbors = 17, p = 1 (Manhattan distance), weights = distance | 0.7928 |
+| Naive Bayes (Gaussian) | No | var_smoothing = 1e-4, priors = None | 0.7120 |
+| Support Vector Machine | StandardScaler | kernel = rbf, C = 3, gamma = 0.04, class_weight = balanced | 0.8215 |
+
+**Comparison table (results on the test data, 211 rows):**
+
+| ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
+|---|---|---|---|---|---|---|
+| Logistic Regression | 0.8815 | 0.9248 | 0.7875 | 0.8873 | 0.8344 | 0.7459 |
+| Decision Tree | 0.8057 | 0.8243 | 0.6923 | 0.7606 | 0.7248 | 0.5767 |
+| KNN | 0.8720 | 0.9217 | 0.7973 | 0.8310 | 0.8138 | 0.7167 |
+| Naive Bayes | 0.7536 | 0.9110 | 0.5812 | **0.9577** | 0.7234 | 0.5778 |
+| Support Vector Machine | **0.9052** | **0.9474** | **0.8493** | 0.8732 | **0.8611** | **0.7894** |
+
+- **Bold** = best value in each column.
+- Precision, Recall and F1 are for the RB class (class 1).
+- For SVM, AUC is calculated from its `decision_function` score, because the SVM model does not give probabilities.
+- The same numbers can be seen in the Streamlit app: upload [`test_data.csv`](https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/test_data.csv) and click **Compare all models**.
