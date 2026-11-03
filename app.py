@@ -102,14 +102,39 @@ def load_model(model_file_name):
     return joblib.load(BASE_DIR / "model" / f"{model_file_name}.pkl")
 
 
+# predictions and the 6 metrics of one model on the test data
+# used for the selected model and also for the "Compare all models" table
+def get_test_metrics(model, X_test, y_test):
+    # only prediction here, the models are already trained in the notebook
+    y_pred = model.predict(X_test)
+
+    # AUC needs a score for each molecule (not just 0/1)
+    # SVM does not give probabilities (probability=True is deprecated in sklearn 1.9), so we use its decision_function
+    if hasattr(model, "predict_proba"):
+        y_score = model.predict_proba(X_test)[:, 1]   # column 1 = probability of RB
+    else:
+        y_score = model.decision_function(X_test)
+
+    # F1 and MCC first, as they are the main metrics for this data (see the note below the classification report)
+    test_metrics = {
+        "F1": f1_score(y_test, y_pred),
+        "MCC": matthews_corrcoef(y_test, y_pred),
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "AUC": roc_auc_score(y_test, y_score),
+        "Precision": precision_score(y_test, y_pred),
+        "Recall": recall_score(y_test, y_pred),
+    }
+    return y_pred, test_metrics
+
+
 test_data = (BASE_DIR / "test_data.csv").read_bytes()
 
 # blank csv with only the header row (all column names), taken from test_data.csv
 # nrows=0 reads only the column names, to_csv writes them back as one header line
 blank_template = pd.read_csv(BASE_DIR / "test_data.csv", nrows=0).to_csv(index=False)
 
-# model selection, model details, test data download, blank template download and upload - all in one row
-model_column, details_column, download_column, template_column, upload_column = st.columns([0.9, 0.5, 0.5, 0.7, 1.4], vertical_alignment="bottom")
+# model selection, model details, compare all models, test data download, blank template download and upload - all in one row
+model_column, details_column, compare_column, download_column, template_column, upload_column = st.columns([0.9, 0.5, 0.62, 0.4, 0.5, 1.08], vertical_alignment="bottom")
 
 with model_column:
     # no model is selected by default (index=None), the user has to choose one
@@ -134,18 +159,28 @@ with details_column:
             if note_file.exists():
                 st.markdown(note_file.read_text())
 
+# download buttons have a download icon and short labels, so that all buttons fit in one row on smaller screens
 with download_column:
-    st.download_button("Download Test Data", test_data, file_name="test_data.csv", mime="text/csv", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
+    st.download_button("Test Data", test_data, file_name="test_data.csv", mime="text/csv", icon=":material/download:", help="Download the unseen test data (20% of overall data). Data source: https://archive.ics.uci.edu/dataset/254/qsar+biodegradation")
 
 with template_column:
-    st.download_button("Download Blank Template", blank_template, file_name="blank_template.csv", mime="text/csv", help=f"CSV file with only the header row (41 feature columns and the '{TARGET_COLUMN}' column). Fill in your own molecules and upload it.")
+    st.download_button("Blank Template", blank_template, file_name="blank_template.csv", mime="text/csv", icon=":material/download:", help=f"CSV file with only the header row (41 feature columns and the '{TARGET_COLUMN}' column). Fill in your own molecules and upload it.")
 
 with upload_column:
-    uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values. Use 'Download Blank Template' to get all the column names.")
+    uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values. Use the 'Blank Template' download button to get all the column names.")
+
+with compare_column:
+    # all 5 saved models on the same uploaded file, in one table (the table is added at the end, after the checks on the file)
+    # this is written after the upload box in the code, so the button can stay disabled until a model and a file are chosen
+    compare_box = st.popover("Compare all models", icon=":material/leaderboard:", disabled=option is None or uploaded_file is None)
+    with compare_box:
+        # this message stays only if the uploaded file fails one of the checks below, otherwise the table replaces it
+        compare_slot = st.empty()
+        compare_slot.info("The uploaded file has a problem, please see the message on the page.")
 
 # show information if no model is selected or no test data csv is uploaded yet
 if option is None or uploaded_file is None:
-    st.info("Please select a model and upload the test data CSV file to see the results. You can get the sample file using the 'Download Test Data' button above.")
+    st.info("Please select a model and upload the test data CSV file to see the results. You can get the sample file using the 'Test Data' download button above.")
     st.stop()
 
 model = load_model(models[option])
@@ -191,25 +226,8 @@ if bad_columns:
 
 y_test = uploaded_df[TARGET_COLUMN].map(TARGET_CLASS_TO_BINARY)
 
-# only prediction here, the models are already trained in the notebook
-y_pred = model.predict(X_test)
-
-# AUC needs a score for each molecule (not just 0/1)
-# SVM does not give probabilities (probability=True is deprecated in sklearn 1.9), so we use its decision_function
-if hasattr(model, "predict_proba"):
-    y_score = model.predict_proba(X_test)[:, 1]   # column 1 = probability of RB
-else:
-    y_score = model.decision_function(X_test)
-
-# F1 and MCC first, as they are the main metrics for this data (see the note below the classification report)
-test_metrics = {
-    "F1": f1_score(y_test, y_pred),
-    "MCC": matthews_corrcoef(y_test, y_pred),
-    "Accuracy": accuracy_score(y_test, y_pred),
-    "AUC": roc_auc_score(y_test, y_score),
-    "Precision": precision_score(y_test, y_pred),
-    "Recall": recall_score(y_test, y_pred),
-}
+# predictions and the 6 metrics of the selected model
+y_pred, test_metrics = get_test_metrics(model, X_test, y_test)
 main_metrics = ["F1", "MCC"]
 
 # what each metric means in simple words, shown in the (?) help of each metric card
@@ -281,3 +299,16 @@ with report_column:
         "F1 was also used to tune all the models in the notebook.",
         icon=":material/star:",
     )
+
+# "Compare all models" box: the same 6 metrics for all 5 saved models on the uploaded file
+all_models_metrics = {}
+for model_name, model_file_name in models.items():
+    _, all_models_metrics[model_name] = get_test_metrics(load_model(model_file_name), X_test, y_test)   # only metrics needed here
+all_models_df = pd.DataFrame(all_models_metrics).transpose()   # one row per model, one column per metric
+
+with compare_slot.container():
+    st.markdown("**All 5 models on the uploaded test data**")
+    # best value in each column (highest) is shown in bold blue
+    st.table(all_models_df.style.format(precision=4).highlight_max(axis=0, props="font-weight: bold; color: #1976D2"))
+    st.markdown(f"Best model by F1: **{all_models_df['F1'].idxmax()}**  \nBest model by MCC: **{all_models_df['MCC'].idxmax()}**")
+    st.caption("Bold blue = best value in each column. F1 and MCC are the main metrics.")
