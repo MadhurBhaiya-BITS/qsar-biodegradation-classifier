@@ -62,6 +62,7 @@ qsar-biodegradation-classifier/
 ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/README.md">README.md</a>                 # This file
 ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/test_data.csv">test_data.csv</a>             # 20% unseen test data (211 rows), upload this file in the app
 ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/LICENSE">LICENSE</a>
+├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/bitslab_vm_screenshots">bitslab_vm_screenshots/</a>   # 37 screenshots of the full notebook run on BITS Virtual Lab
 ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/data">data/</a>
 │   └── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/data/qsar%2Bbiodegradation.zip">qsar+biodegradation.zip</a>   # Original dataset from UCI
 ├── <a href="https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/tree/main/model">model/</a>                    # 5 trained models (scikit-learn pipelines), saved with joblib
