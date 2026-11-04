@@ -115,3 +115,16 @@ All 5 models were trained on the same training data (841 rows) in the notebook [
 - Precision, Recall and F1 are for the RB class (class 1).
 - For SVM, AUC is calculated from its `decision_function` score, because the SVM model does not give probabilities.
 - The same numbers can be seen in the Streamlit app: upload [`test_data.csv`](https://github.com/MadhurBhaiya-BITS/qsar-biodegradation-classifier/blob/main/test_data.csv) and click **Compare all models**.
+
+### Observations on model performance
+
+| ML Model Name | Observation about model performance |
+|---|---|
+| Logistic Regression | Second best model (F1 0.8344, MCC 0.7459, AUC 0.9248). A simple straight-line model already separates RB and NRB quite well. In tuning, L1, L2 and Elastic Net scored almost the same (0.798 to 0.799). Train F1 (0.8124) is only about 0.01 above CV F1 (0.8029), so there is no overfitting. |
+| Decision Tree | One of the two weakest models (F1 0.7248, MCC 0.5767), and it has the lowest AUC (0.8243). Even with max_depth = 7, train F1 (0.8651) is about 0.12 above CV F1 (0.7494). So the tree learns the training data by heart (overfitting) and does not work as well on new data. |
+| KNN | Third best model (F1 0.8138, MCC 0.7167, AUC 0.9217). It worked best with k = 17, Manhattan distance and distance weights. Any k between 3 and 23 gave close CV scores (0.780 to 0.793). Train F1 is 1.0 only because of distance weights (each training molecule finds itself as nearest neighbour), so this is not real overfitting. |
+| Naive Bayes | It finds almost every RB molecule (Recall 0.9577, only 3 missed), but it also calls 49 NRB molecules RB. So it has the lowest Precision (0.5812) and Accuracy (0.7536). Its AUC is still high (0.9110), so it ranks the molecules well, but the default 0.5 cut-off does not suit it. Train and CV F1 are both low (0.7168 and 0.7120), so it is too simple for this data (underfitting): the features are not bell-shaped and not independent, as Naive Bayes assumes. |
+| Support Vector Machine | Best model: top in 5 of the 6 metrics (Accuracy 0.9052, AUC 0.9474, Precision 0.8493, F1 0.8611, MCC 0.7894). Only 20 of the 211 test molecules are wrong (11 NRB called RB, 9 RB missed). In tuning, the rbf kernel (0.8130) was only a little better than linear (0.8080). There is some overfitting (train F1 0.9054 vs CV F1 0.8215), but it still does best on unseen data. |
+| **Overall, Winner for your dataset?** | **Support Vector Machine (rbf kernel).** It has the best F1 and MCC, the two main metrics for this imbalanced data, and it also had the best CV F1 (0.8215). Logistic Regression is second (F1 0.8344) and is a simpler model. The order of the models on the test data (SVM > Logistic Regression > KNN > Decision Tree ≈ Naive Bayes) is the same as in cross-validation, and test F1 is within about 0.04 of CV F1 for every model. So the CV scores were a good guide. |
+
+**Note:** Accuracy alone can be misleading here. Every model has Accuracy above 0.75, but F1 and MCC show the differences between the models much more clearly.
