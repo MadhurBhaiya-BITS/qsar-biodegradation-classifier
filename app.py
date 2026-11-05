@@ -95,11 +95,14 @@ models = {
     "Naive Bayes - Gaussian": "naive_bayes",
 }
 
-
 # load the saved model only once, streamlit keeps it in cache for next reruns
 @st.cache_resource
 def load_model(model_file_name):
     return joblib.load(BASE_DIR / "model" / f"{model_file_name}.pkl")
+
+# load all models on page load for the first time to get fast results when switching models
+for m in models.values():
+    load_model(m)
 
 
 # predictions and the 6 metrics of one model on the test data
@@ -170,20 +173,15 @@ with upload_column:
     uploaded_file = st.file_uploader("Upload Test Data (CSV file)", type="csv", help=f"The file must have the 41 feature columns and the '{TARGET_COLUMN}' column with RB / NRB values. Use the 'Blank Template' download button to get all the column names.")
 
 with compare_column:
-    # all 5 saved models on the same uploaded file, in one table (the table is added at the end, after the checks on the file)
-    # this is written after the upload box in the code, so the button can stay disabled until a model and a file are chosen
-    compare_box = st.popover("Compare all models", icon=":material/leaderboard:", disabled=option is None or uploaded_file is None)
-    with compare_box:
-        # this message stays only if the uploaded file fails one of the checks below, otherwise the table replaces it
-        compare_slot = st.empty()
-        compare_slot.info("The uploaded file has a problem, please see the message on the page.")
+   # show Compare all models button default grayed out
+   compare_slot = st.empty()
+   compare_slot.popover("Compare all models", icon=":material/leaderboard:", disabled=True)
 
-# show information if no model is selected or no test data csv is uploaded yet
-if option is None or uploaded_file is None:
-    st.info("Please select a model and upload the test data CSV file to see the results. You can get the sample file using the 'Test Data' download button above.")
+
+# show information if no test data csv is uploaded yet
+if uploaded_file is None:
+    st.info("Please upload the test data CSV file. You can get the sample file using the 'Test Data' download button above.")
     st.stop()
-
-model = load_model(models[option])
 
 try:
     uploaded_df = pd.read_csv(uploaded_file)
@@ -191,12 +189,13 @@ except Exception as error:
     st.error(f"Could not read the uploaded file as CSV. Error: {error}")
     st.stop()
 
+
 # preview of the uploaded data is kept closed, so that the page fits on one screen
 with st.expander(f"Preview of uploaded data ({uploaded_df.shape[0]} rows, {uploaded_df.shape[1]} columns)"):
     st.dataframe(uploaded_df.head())
 
-# the saved model remembers the 41 feature names it was trained on, so we take them from it
-feature_columns = list(model.feature_names_in_)
+# take the feature names from logistic_regression model. all model will have same feature names
+feature_columns = list(load_model("logistic_regression").feature_names_in_)
 
 # checks on the uploaded file; need to ensure that columns match
 missing_columns = [col for col in feature_columns + [TARGET_COLUMN] if col not in uploaded_df.columns]
@@ -225,6 +224,29 @@ if bad_columns:
     st.stop()
 
 y_test = uploaded_df[TARGET_COLUMN].map(TARGET_CLASS_TO_BINARY)
+
+
+# "Compare all models" box: the same 6 metrics for all 5 saved models on the uploaded file
+all_models_metrics = {}
+for model_name, model_file_name in models.items():
+    _, all_models_metrics[model_name] = get_test_metrics(load_model(model_file_name), X_test, y_test)   # only metrics needed here
+all_models_df = pd.DataFrame(all_models_metrics).transpose()   # one row per model, one column per metric
+
+with compare_slot.popover("Compare all models", icon=":material/leaderboard:"):
+    st.markdown("**All 5 models on the uploaded test data**")
+    # best value in each column (highest) is shown in bold blue
+    st.dataframe(all_models_df.style.format(precision=4).highlight_max(axis=0, props="font-weight: bold; color: #1976D2"), width="content")
+    st.markdown(f"Best model by F1: **{all_models_df['F1'].idxmax()}**  \nBest model by MCC: **{all_models_df['MCC'].idxmax()}**")
+    st.caption("Bold blue = best value in each column. F1 and MCC are the main metrics.")
+
+
+# show information if no model is selected
+if option is None:
+    st.info("Please select a model to see the detailed results. You can use 'Compare all models' to see summarized results without selecting a specific model.")
+    st.stop()
+
+
+model = load_model(models[option])
 
 # predictions and the 6 metrics of the selected model
 y_pred, test_metrics = get_test_metrics(model, X_test, y_test)
@@ -299,16 +321,3 @@ with report_column:
         "F1 was also used to tune all the models in the notebook.",
         icon=":material/star:",
     )
-
-# "Compare all models" box: the same 6 metrics for all 5 saved models on the uploaded file
-all_models_metrics = {}
-for model_name, model_file_name in models.items():
-    _, all_models_metrics[model_name] = get_test_metrics(load_model(model_file_name), X_test, y_test)   # only metrics needed here
-all_models_df = pd.DataFrame(all_models_metrics).transpose()   # one row per model, one column per metric
-
-with compare_slot.container():
-    st.markdown("**All 5 models on the uploaded test data**")
-    # best value in each column (highest) is shown in bold blue
-    st.table(all_models_df.style.format(precision=4).highlight_max(axis=0, props="font-weight: bold; color: #1976D2"))
-    st.markdown(f"Best model by F1: **{all_models_df['F1'].idxmax()}**  \nBest model by MCC: **{all_models_df['MCC'].idxmax()}**")
-    st.caption("Bold blue = best value in each column. F1 and MCC are the main metrics.")
